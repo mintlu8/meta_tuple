@@ -1,0 +1,14 @@
+[package]
+name = "meta_tuple"
+version = "0.1.0"
+edition = "2024"
+
+authors = ["Mincong Lu <mintlux667@gmail.com>"]
+license = "MIT OR Apache-2.0"
+
+readme = "README.md"
+repository = "https://github.com/mintlu8/meta_tuple"
+description = """
+A statically typed opaque tuple that can contain any type.
+"""
+keywords = ["tuple", "any", "downcast"]
