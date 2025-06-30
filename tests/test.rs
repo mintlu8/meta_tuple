@@ -1,6 +1,6 @@
 use core::fmt::Display;
 
-use meta_tuple::{impl_meta_tuple, meta_tuple, meta_tuple_type, MetaBox, MetaTuple};
+use meta_tuple::{IntoMetaTuple, MetaBox, MetaTuple, impl_meta_tuple, meta_tuple, meta_tuple_type};
 
 #[derive(Debug, PartialEq, Eq)]
 struct MyType;
@@ -34,7 +34,6 @@ pub fn test() {
     assert_eq!(b.get::<Vec<i32>>(), Some(&vec![1, 2, 3]));
     assert_eq!(b.get::<u32>(), None);
 
-
     let s = String::from("hello");
     let mut v = vec![1, 2, 3];
     let mut c = meta_tuple!(1i32, &s, &mut v);
@@ -44,7 +43,6 @@ pub fn test() {
     assert_eq!(c.get::<Vec<i32>>(), Some(&vec![1, 2, 3]));
     assert_eq!(c.get_mut::<Vec<i32>>(), Some(&mut vec![1, 2, 3]));
     assert_eq!(c.get::<&str>(), None);
-
 
     let d = meta_tuple!(4.0f32, vec![1,2], #MyTypeGeneric("Hi"), #&MyType, #c);
     assert_eq!(d.get::<i32>(), Some(&1));
@@ -67,4 +65,9 @@ pub fn test() {
     let _t2: meta_tuple_type!(&i32) = meta_tuple!(&1i32);
     let _t3: meta_tuple_type!(&mut i32) = meta_tuple!(&mut 1i32);
     let _t4: meta_tuple_type!(i32, &u32) = meta_tuple!(1i32, &2u32);
+
+    let f = (1, 4.5f32, "hi").into_meta_tuple();
+    assert_eq!(f.get::<i32>(), Some(&1));
+    assert_eq!(f.get::<f32>(), Some(&4.5));
+    assert_eq!(f.get::<&str>(), Some(&"hi"));
 }

@@ -1,14 +1,14 @@
 #![no_std]
 mod dynamic;
+mod into;
 mod item;
 mod r#macro;
-mod into;
 
 #[doc(hidden)]
 pub use core::any::Any;
 pub use dynamic::*;
-pub use item::MetaItem;
 pub use into::IntoMetaTuple;
+pub use item::MetaItem;
 
 /// A statically typed opaque tuple that can contain any type.
 ///

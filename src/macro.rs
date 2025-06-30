@@ -1,5 +1,5 @@
 #[allow(unused)]
-use crate::{MetaTuple, MetaItem, IntoMetaTuple};
+use crate::{IntoMetaTuple, MetaItem, MetaTuple};
 
 /// Create a [`MetaTuple`].
 ///
@@ -102,17 +102,17 @@ macro_rules! meta_tuple_type {
 }
 
 /// Implement [`MetaTuple`] for a type and by proxy [`IntoMetaTuple`], making it equivalent to [`MetaItem<T>`].
-/// 
+///
 /// This is useful to satisfy API constraints.
-/// 
+///
 /// # Syntax
-/// 
+///
 /// This is equivalent to a derive macro.
-/// 
+///
 /// ```
 /// // Equivalent to impl MetaTuple for MyType {}
 /// impl_meta_tuple!(MyType)
-/// 
+///
 /// // Equivalent to impl<T: Copy> MetaTuple for MyType <T> {}
 /// impl_meta_tuple!([T: Copy]MyType[T])
 /// ```
@@ -162,5 +162,3 @@ macro_rules! impl_meta_tuple {
         }
     };
 }
-
-
