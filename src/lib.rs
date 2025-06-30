@@ -54,37 +54,37 @@ pub trait MetaTuple: MetaBox {
     fn get_mut<T: 'static>(&mut self) -> Option<&mut T>;
 
     /// Join with another concrete value.
-    fn join<T: 'static>(self, other: T) -> (Self, MetaItem<T>)
+    fn join<T: 'static>(self, other: T) -> Join<Self, MetaItem<T>>
     where
         Self: Sized,
     {
-        (self, MetaItem(other))
+        Join(self, MetaItem(other))
     }
 
     /// Join with a reference to a concrete value.
     ///
     /// If querying for a mutable reference, will return `None`.
-    fn join_ref<T: 'static>(self, other: &T) -> (Self, &T)
+    fn join_ref<T: 'static>(self, other: &T) -> Join<Self, &MetaItem<T>>
     where
         Self: Sized,
     {
-        (self, other)
+        Join(self, MetaItem::from_ref(other))
     }
 
     /// Join with a mutable reference to a concrete value.
-    fn join_mut<T: 'static>(self, other: &mut T) -> (Self, &mut T)
+    fn join_mut<T: 'static>(self, other: &mut T) -> Join<Self, &mut MetaItem<T>>
     where
         Self: Sized,
     {
-        (self, other)
+        Join(self, MetaItem::from_mut(other))
     }
 
     /// Join with another [`MetaTuple`].
-    fn join_tuple<T: MetaTuple>(self, other: T) -> (Self, T)
+    fn join_tuple<T: MetaTuple>(self, other: T) -> Join<Self, T>
     where
         Self: Sized,
     {
-        (self, other)
+        Join(self, other)
     }
 }
 
