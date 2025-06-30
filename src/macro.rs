@@ -68,7 +68,9 @@ macro_rules! meta_tuple {
     };
 }
 
-/// Implement [`MetaTuple`] for the current type, so it can be used without [`MetaItem`].
+/// Implement [`MetaTuple`] for a type, making it equivalent to [`MetaItem<T>`].
+/// 
+/// This is useful to satisfy API constraints.
 /// 
 /// # Syntax
 /// 
