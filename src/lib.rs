@@ -23,8 +23,8 @@ pub use item::MetaItem;
 ///
 /// impl CardComponent for Attack {
 ///     fn play(&self, input: &impl MetaTuple) -> impl MetaTuple {
-///         let attacker = input.get::<Attacker>();
-///         let defender = input.get::<Defender>();
+///         let attacker = input.get::<Attacker>().unwrap();
+///         let defender = input.get::<Defender>().unwrap();
 ///         let damage_dealt = self.calculate_damage(attacker, defender);
 ///         input.join(DamageDealt(damage_dealt))
 ///     }

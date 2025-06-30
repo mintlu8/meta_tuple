@@ -1,3 +1,6 @@
+#[allow(unused)]
+use crate::{MetaTuple, MetaItem};
+
 /// Create a [`MetaTuple`].
 ///
 /// # Syntax
@@ -65,6 +68,19 @@ macro_rules! meta_tuple {
     };
 }
 
+/// Implement [`MetaTuple`] for the current type, so it can be used without [`MetaItem`].
+/// 
+/// # Syntax
+/// 
+/// This is equivalent to a derive macro.
+/// 
+/// ```
+/// // Equivalent to impl MetaTuple for MyType {}
+/// impl_meta_tuple!(MyType)
+/// 
+/// // Equivalent to impl<T: Copy> MetaTuple for MyType <T> {}
+/// impl_meta_tuple!([T: Copy]MyType[T])
+/// ```
 #[macro_export]
 macro_rules! impl_meta_tuple {
     ($ty: ident) => {
