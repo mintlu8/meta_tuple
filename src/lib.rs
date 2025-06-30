@@ -2,11 +2,13 @@
 mod dynamic;
 mod item;
 mod r#macro;
+mod into;
 
 #[doc(hidden)]
 pub use core::any::Any;
 pub use dynamic::*;
 pub use item::MetaItem;
+pub use into::IntoMetaTuple;
 
 /// A statically typed opaque tuple that can contain any type.
 ///
@@ -116,16 +118,6 @@ impl MetaTuple for () {
     }
 }
 
-impl<A: MetaTuple, B: MetaTuple> MetaTuple for (A, B) {
-    fn get<T: 'static>(&self) -> Option<&T> {
-        self.0.get().or_else(|| self.1.get())
-    }
-
-    fn get_mut<T: 'static>(&mut self) -> Option<&mut T> {
-        self.0.get_mut().or_else(|| self.1.get_mut())
-    }
-}
-
 impl<T: 'static> MetaTuple for MetaItem<T> {
     fn get<U: 'static>(&self) -> Option<&U> {
         (&self.0 as &dyn Any).downcast_ref()
@@ -153,5 +145,18 @@ impl<T: 'static> MetaTuple for Option<T> {
             }
         }
         None
+    }
+}
+
+#[derive(Debug, Clone, Copy, Default)]
+pub struct Join<A, B>(pub A, pub B);
+
+impl<A: MetaTuple, B: MetaTuple> MetaTuple for Join<A, B> {
+    fn get<T: 'static>(&self) -> Option<&T> {
+        self.0.get().or_else(|| self.1.get())
+    }
+
+    fn get_mut<T: 'static>(&mut self) -> Option<&mut T> {
+        self.0.get_mut().or_else(|| self.1.get_mut())
     }
 }

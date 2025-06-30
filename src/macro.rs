@@ -1,5 +1,5 @@
 #[allow(unused)]
-use crate::{MetaTuple, MetaItem};
+use crate::{MetaTuple, MetaItem, IntoMetaTuple};
 
 /// Create a [`MetaTuple`].
 ///
@@ -43,16 +43,16 @@ macro_rules! meta_tuple {
         $prev
     };
     (@[$prev: expr] #$e: expr $(, $($rest: tt)*)?) => {
-        meta_tuple!(@[($prev, $e)] $($($rest)*)?)
+        meta_tuple!(@[$crate::Join($prev, $e)] $($($rest)*)?)
     };
     (@[$prev: expr] &mut $e: expr $(, $($rest: tt)*)?) => {
-        meta_tuple!(@[($prev, $crate::MetaItem::from_mut(&mut $e))] $($($rest)*)?)
+        meta_tuple!(@[$crate::Join($prev, $crate::MetaItem::from_mut(&mut $e))] $($($rest)*)?)
     };
     (@[$prev: expr] &$e: expr $(, $($rest: tt)*)?) => {
-        meta_tuple!(@[($prev, $crate::MetaItem::from_ref(&$e))] $($($rest)*)?)
+        meta_tuple!(@[$crate::Join($prev, $crate::MetaItem::from_ref(&$e))] $($($rest)*)?)
     };
     (@[$prev: expr] $e: expr $(, $($rest: tt)*)?) => {
-        meta_tuple!(@[($prev, $crate::MetaItem($e))] $($($rest)*)?)
+        meta_tuple!(@[$crate::Join($prev, $crate::MetaItem($e))] $($($rest)*)?)
     };
     (#$e: expr $(, $($rest: tt)*)?) => {
         meta_tuple!(@[$e] $($($rest)*)?)
@@ -68,7 +68,40 @@ macro_rules! meta_tuple {
     };
 }
 
-/// Implement [`MetaTuple`] for a type, making it equivalent to [`MetaItem<T>`].
+/// Creates the typing of a [`MetaTuple`].
+#[macro_export]
+macro_rules! meta_tuple_type {
+    () => {()};
+    (@[$prev: ty]) => {
+        $prev
+    };
+    (@[$prev: ty] #$ty: ty $(, $($tt:tt)*)?) => {
+        $crate::meta_tuple_type!{@[$crate::Join<$prev, $ty>] $($($tt)*)?}
+    };
+    (@[$prev: ty] &mut $ty: ty $(, $($tt:tt)*)?) => {
+        $crate::meta_tuple_type!{@[$crate::Join<$prev, &mut $crate::MetaItem<$ty>>] $($($tt)*)?}
+    };
+    (@[$prev: ty] &$ty: ty $(, $($tt:tt)*)?) => {
+        $crate::meta_tuple_type!{@[$crate::Join<$prev, &$crate::MetaItem<$ty>>] $($($tt)*)?}
+    };
+    (@[$prev: ty] $ty: ty $(, $($tt:tt)*)?) => {
+        $crate::meta_tuple_type!{@[$crate::Join<$prev, $crate::MetaItem<$ty>>] $($($tt)*)?}
+    };
+    (#$ty: ty $(, $($tt:tt)*)?) => {
+        $crate::meta_tuple_type!{@[$ty] $($($tt)*)?}
+    };
+    (&mut $ty: ty $(, $($tt:tt)*)?) => {
+        $crate::meta_tuple_type!{@[&mut $crate::MetaItem<$ty>] $($($tt)*)?}
+    };
+    (&$ty: ty $(, $($tt:tt)*)?) => {
+        $crate::meta_tuple_type!{@[&$crate::MetaItem<$ty>] $($($tt)*)?}
+    };
+    ($ty: ty $(, $($tt:tt)*)?) => {
+        $crate::meta_tuple_type!{@[$crate::MetaItem<$ty>] $($($tt)*)?}
+    };
+}
+
+/// Implement [`MetaTuple`] for a type and by proxy [`IntoMetaTuple`], making it equivalent to [`MetaItem<T>`].
 /// 
 /// This is useful to satisfy API constraints.
 /// 
@@ -129,3 +162,5 @@ macro_rules! impl_meta_tuple {
         }
     };
 }
+
+

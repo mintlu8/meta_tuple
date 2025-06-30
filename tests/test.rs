@@ -1,6 +1,6 @@
 use core::fmt::Display;
 
-use meta_tuple::{impl_meta_tuple, meta_tuple, MetaBox, MetaTuple};
+use meta_tuple::{impl_meta_tuple, meta_tuple, meta_tuple_type, MetaBox, MetaTuple};
 
 #[derive(Debug, PartialEq, Eq)]
 struct MyType;
@@ -61,4 +61,10 @@ pub fn test() {
     assert_eq!(e.get::<MyTypeGeneric<&str>>(), Some(&MyTypeGeneric("Hi")));
     assert_eq!(e.get::<MyType>(), Some(&MyType));
     assert_eq!(e.get::<Vec<i32>>(), Some(&vec![1, 2]));
+
+    let _t0: meta_tuple_type!(i32) = meta_tuple!(1i32);
+    let _t1: meta_tuple_type!(i32, f32, u32) = meta_tuple!(1i32, 1f32, 1u32);
+    let _t2: meta_tuple_type!(&i32) = meta_tuple!(&1i32);
+    let _t3: meta_tuple_type!(&mut i32) = meta_tuple!(&mut 1i32);
+    let _t4: meta_tuple_type!(i32, &u32) = meta_tuple!(1i32, &2u32);
 }

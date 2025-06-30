@@ -1,4 +1,4 @@
-use crate::{MetaItem, MetaTuple};
+use crate::{Join, MetaItem, MetaTuple};
 use core::{any::Any, ptr::NonNull};
 
 /// Erased [`MetaTuple`].
@@ -110,7 +110,7 @@ impl<T: 'static> MetaBox for Option<T> {
     }
 }
 
-impl<A: MetaTuple, B: MetaTuple> MetaBox for (A, B) {
+impl<A: MetaTuple, B: MetaTuple> MetaBox for Join<A, B> {
     fn as_erased<'t>(&self) -> ErasedInner<'_> {
         ErasedInner::Joined(&self.0, &self.1)
     }
