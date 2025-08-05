@@ -119,20 +119,28 @@ macro_rules! meta_tuple_type {
 #[macro_export]
 macro_rules! impl_meta_tuple {
     ($ty: ident) => {
-        impl $crate::MetaBox for $ty {
+        unsafe impl $crate::MetaBox for $ty {
             fn as_erased(&self) -> $crate::ErasedInner<'_> {
                 $crate::ErasedInner::Any(self)
             }
             fn as_erased_mut(&mut self) -> $crate::ErasedInnerMut<'_> {
                 $crate::ErasedInnerMut::Any(self)
             }
+            fn as_erased_ptr(&self) -> $crate::ErasedInnerPtr<'_> {
+                $crate::ErasedInnerPtr::Any(self)
+            }
         }
-        impl $crate::MetaTuple for $ty {
+        
+        unsafe impl $crate::MetaTuple for $ty {
             fn get<__T: 'static>(&self) -> Option<&__T> {
                 (self as &dyn $crate::Any).downcast_ref()
             }
             fn get_mut<__T: 'static>(&mut self) -> Option<&mut __T> {
                 (self as &mut dyn $crate::Any).downcast_mut()
+            }
+            fn get_mut_ptr<__T: 'static>(&self) -> Option<*mut __T> {
+                (self as &dyn $crate::Any).downcast_ref()
+                    .map(|x| x as *const __T as *mut __T)
             }
         }
     };
@@ -142,15 +150,19 @@ macro_rules! impl_meta_tuple {
     };
 
     ([$($a: tt)*]$ty: ident [$($b: tt)*]) => {
-        impl<$($a)*> $crate::MetaBox for $ty<$($b)*> where Self: 'static {
+        unsafe impl<$($a)*> $crate::MetaBox for $ty<$($b)*> where Self: 'static {
             fn as_erased(&self) -> $crate::ErasedInner<'_> {
                 $crate::ErasedInner::Any(self)
             }
             fn as_erased_mut(&mut self) -> $crate::ErasedInnerMut<'_> {
                 $crate::ErasedInnerMut::Any(self)
             }
+            fn as_erased_ptr(&self) -> $crate::ErasedInnerPtr<'_> {
+                $crate::ErasedInnerPtr::Any(self)
+            }
         }
-        impl<$($a)*> $crate::MetaTuple for $ty<$($b)*> where Self: 'static {
+
+        unsafe impl<$($a)*> $crate::MetaTuple for $ty<$($b)*> where Self: 'static {
             /// Obtain an item, if exists.
             fn get<__T: 'static>(&self) -> Option<&__T> {
                 (self as &dyn $crate::Any).downcast_ref()
@@ -158,6 +170,10 @@ macro_rules! impl_meta_tuple {
             /// Obtain a mutable item, if exists.
             fn get_mut<__T: 'static>(&mut self) -> Option<&mut __T> {
                 (self as &mut dyn $crate::Any).downcast_mut()
+            }
+            fn get_mut_ptr<__T: 'static>(&self) -> Option<*mut __T> {
+                (self as &dyn $crate::Any).downcast_ref()
+                    .map(|x| x as *const __T as *mut __T)
             }
         }
     };

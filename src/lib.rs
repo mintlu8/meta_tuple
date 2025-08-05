@@ -3,6 +3,7 @@ mod dynamic;
 mod into;
 mod item;
 mod r#macro;
+mod query;
 
 #[doc(hidden)]
 pub use core::any::Any;
@@ -47,11 +48,28 @@ pub use item::MetaItem;
 /// # Dyn Compatibility
 ///
 /// For a boxed dynamic version, see super trait [`MetaBox`].
-pub trait MetaTuple: MetaBox {
+///
+/// # Safety
+///
+/// This trait cannot return overlapping references for different types.
+///
+/// For example
+///
+/// ```
+/// struct A{
+///     b: B,
+///     c: C,
+/// }
+/// ```
+///
+/// The implementation can return `A`, or `(B, C)` but not both.
+pub unsafe trait MetaTuple: MetaBox {
     /// Obtain an item, if exists.
     fn get<T: 'static>(&self) -> Option<&T>;
     /// Obtain a mutable item, if exists.
     fn get_mut<T: 'static>(&mut self) -> Option<&mut T>;
+    /// Obtain a mutable item as pointer, if exists.
+    fn get_mut_ptr<T: 'static>(&self) -> Option<*mut T>;
 
     /// Join with another concrete value.
     fn join<T: 'static>(self, other: T) -> Join<Self, MetaItem<T>>
@@ -88,7 +106,7 @@ pub trait MetaTuple: MetaBox {
     }
 }
 
-impl<T: MetaTuple> MetaTuple for &T {
+unsafe impl<T: MetaTuple> MetaTuple for &T {
     fn get<U: 'static>(&self) -> Option<&U> {
         MetaTuple::get(*self)
     }
@@ -96,9 +114,13 @@ impl<T: MetaTuple> MetaTuple for &T {
     fn get_mut<U: 'static>(&mut self) -> Option<&mut U> {
         None
     }
+
+    fn get_mut_ptr<U: 'static>(&self) -> Option<*mut U> {
+        None
+    }
 }
 
-impl<T: MetaTuple> MetaTuple for &mut T {
+unsafe impl<T: MetaTuple> MetaTuple for &mut T {
     fn get<U: 'static>(&self) -> Option<&U> {
         MetaTuple::get(*self)
     }
@@ -106,9 +128,13 @@ impl<T: MetaTuple> MetaTuple for &mut T {
     fn get_mut<U: 'static>(&mut self) -> Option<&mut U> {
         MetaTuple::get_mut(*self)
     }
+
+    fn get_mut_ptr<U: 'static>(&self) -> Option<*mut U> {
+        MetaTuple::get_mut_ptr(*self)
+    }
 }
 
-impl MetaTuple for () {
+unsafe impl MetaTuple for () {
     fn get<T: 'static>(&self) -> Option<&T> {
         None
     }
@@ -116,9 +142,13 @@ impl MetaTuple for () {
     fn get_mut<T: 'static>(&mut self) -> Option<&mut T> {
         None
     }
+
+    fn get_mut_ptr<T: 'static>(&self) -> Option<*mut T> {
+        None
+    }
 }
 
-impl<T: 'static> MetaTuple for MetaItem<T> {
+unsafe impl<T: 'static> MetaTuple for MetaItem<T> {
     fn get<U: 'static>(&self) -> Option<&U> {
         (&self.0 as &dyn Any).downcast_ref()
     }
@@ -126,9 +156,15 @@ impl<T: 'static> MetaTuple for MetaItem<T> {
     fn get_mut<U: 'static>(&mut self) -> Option<&mut U> {
         (&mut self.0 as &mut dyn Any).downcast_mut()
     }
+
+    fn get_mut_ptr<U: 'static>(&self) -> Option<*mut U> {
+        (&self.0 as &dyn Any)
+            .downcast_ref()
+            .map(|x| x as *const U as *mut U)
+    }
 }
 
-impl<T: 'static> MetaTuple for Option<T> {
+unsafe impl<T: 'static> MetaTuple for Option<T> {
     fn get<U: 'static>(&self) -> Option<&U> {
         if let Some(v) = self.as_ref() {
             if let Some(result) = (v as &dyn Any).downcast_ref() {
@@ -146,17 +182,30 @@ impl<T: 'static> MetaTuple for Option<T> {
         }
         None
     }
+
+    fn get_mut_ptr<U: 'static>(&self) -> Option<*mut U> {
+        if let Some(v) = self.as_ref() {
+            if let Some(result) = (v as &dyn Any).downcast_ref() {
+                return Some(result as *const U as *mut U);
+            }
+        }
+        None
+    }
 }
 
 #[derive(Debug, Clone, Copy, Default)]
 pub struct Join<A, B>(pub A, pub B);
 
-impl<A: MetaTuple, B: MetaTuple> MetaTuple for Join<A, B> {
+unsafe impl<A: MetaTuple, B: MetaTuple> MetaTuple for Join<A, B> {
     fn get<T: 'static>(&self) -> Option<&T> {
         self.0.get().or_else(|| self.1.get())
     }
 
     fn get_mut<T: 'static>(&mut self) -> Option<&mut T> {
         self.0.get_mut().or_else(|| self.1.get_mut())
+    }
+
+    fn get_mut_ptr<T: 'static>(&self) -> Option<*mut T> {
+        self.0.get_mut_ptr().or_else(|| self.1.get_mut_ptr())
     }
 }

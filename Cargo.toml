@@ -12,3 +12,8 @@ description = """
 A statically typed opaque tuple that can contain any type.
 """
 keywords = ["tuple", "any", "downcast"]
+
+[features]
+default = ["std"]
+std = []
+
