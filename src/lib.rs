@@ -11,6 +11,9 @@ pub use dynamic::*;
 pub use into::IntoMetaTuple;
 pub use item::MetaItem;
 
+#[cfg(feature = "derive")]
+pub use meta_tuple_derive::{MetaItem, MetaTuple};
+
 /// A statically typed opaque tuple that can contain any type.
 ///
 /// This is a zero cost abstraction in most cases. To create, see macro [`meta_tuple!`].

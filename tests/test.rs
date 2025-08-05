@@ -1,24 +1,21 @@
 use core::fmt::Display;
 
-use meta_tuple::{IntoMetaTuple, MetaBox, MetaTuple, impl_meta_tuple, meta_tuple, meta_tuple_type};
+use meta_tuple::{meta_tuple, meta_tuple_type, IntoMetaTuple, MetaBox, MetaItem, MetaTuple};
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, MetaItem)]
 struct MyType;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, MetaItem)]
 struct MyTypeGeneric<T>(T);
 
+#[derive(MetaItem)]
 struct MyTypeGeneric2<T: Display>(T);
 
+#[derive(MetaItem)]
 struct MyTypeGeneric3<T: Display, const N: usize>(T);
 
+#[derive(MetaItem)]
 struct MyTypeGeneric4<T: Display, const N: usize>(T);
-
-impl_meta_tuple!(MyType);
-impl_meta_tuple!(MyTypeGeneric[T]);
-impl_meta_tuple!([T: Display]MyTypeGeneric2[T]);
-impl_meta_tuple!([T: Display, const N: usize]MyTypeGeneric3[T, N]);
-impl_meta_tuple!([T: Display]MyTypeGeneric4[T, 3]);
 
 #[test]
 pub fn test() {

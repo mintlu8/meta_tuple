@@ -101,80 +101,82 @@ macro_rules! meta_tuple_type {
     };
 }
 
-/// Implement [`MetaTuple`] for a type and by proxy [`IntoMetaTuple`], making it equivalent to [`MetaItem<T>`].
+/// Add the `get` and `get_mut` function on subtraits of [`Metabox`].
 ///
-/// This is useful to satisfy API constraints.
-///
-/// # Syntax
-///
-/// This is equivalent to a derive macro.
+/// Syntax
 ///
 /// ```
-/// // Equivalent to impl MetaTuple for MyType {}
-/// impl_meta_tuple!(MyType)
+/// # use meta_tuple::*;
+/// trait Metadata: MetaBox + 'static {}
 ///
-/// // Equivalent to impl<T: Copy> MetaTuple for MyType <T> {}
-/// impl_meta_tuple!([T: Copy]MyType[T])
+/// impl_meta_box!(Metadata);
 /// ```
 #[macro_export]
-macro_rules! impl_meta_tuple {
-    ($ty: ident) => {
-        unsafe impl $crate::MetaBox for $ty {
-            fn as_erased(&self) -> $crate::ErasedInner<'_> {
-                $crate::ErasedInner::Any(self)
-            }
-            fn as_erased_mut(&mut self) -> $crate::ErasedInnerMut<'_> {
-                $crate::ErasedInnerMut::Any(self)
-            }
-            fn as_erased_ptr(&self) -> $crate::ErasedInnerPtr<'_> {
-                $crate::ErasedInnerPtr::Any(self)
-            }
-        }
-        
-        unsafe impl $crate::MetaTuple for $ty {
-            fn get<__T: 'static>(&self) -> Option<&__T> {
-                (self as &dyn $crate::Any).downcast_ref()
-            }
-            fn get_mut<__T: 'static>(&mut self) -> Option<&mut __T> {
-                (self as &mut dyn $crate::Any).downcast_mut()
-            }
-            fn get_mut_ptr<__T: 'static>(&self) -> Option<*mut __T> {
-                (self as &dyn $crate::Any).downcast_ref()
-                    .map(|x| x as *const __T as *mut __T)
-            }
-        }
-    };
+macro_rules! impl_meta_box {
+    ($trait: ident) => {
+        const _: () = {
+            use $crate::MetaBox;
+            impl dyn $trait + '_ {
+                /// Obtain an item if it exists in the [`MetaBox`].
+                ///
+                /// Always returns `Some` for `()`.
+                pub fn get<T: 'static>(&self) -> Option<&T> {
+                    if let Some(value) = (&() as &dyn $crate::Any).downcast_ref() {
+                        return Some(value);
+                    }
+                    match self.as_erased() {
+                        $crate::ErasedInner::None => None,
+                        $crate::ErasedInner::Any(any) => any.downcast_ref(),
+                        $crate::ErasedInner::Joined(a, b) => a.get().or_else(|| b.get()),
+                        $crate::ErasedInner::Struct(s) => {
+                            let mut idx = 0;
+                            while let Some(field) = s.get_field(idx) {
+                                if let Some(result) = field.downcast_ref() {
+                                    return Some(result);
+                                }
+                                idx += 1;
+                            }
+                            None
+                        }
+                    }
+                }
 
-    ($ty: ident [$($a: tt)*]) => {
-        $crate::impl_meta_tuple!{[$($a)*] $ty [$($a)*]}
-    };
-
-    ([$($a: tt)*]$ty: ident [$($b: tt)*]) => {
-        unsafe impl<$($a)*> $crate::MetaBox for $ty<$($b)*> where Self: 'static {
-            fn as_erased(&self) -> $crate::ErasedInner<'_> {
-                $crate::ErasedInner::Any(self)
+                /// Obtain an item if it exists in the [`MetaBox`].
+                ///
+                /// Always returns `Some` for `()`.
+                pub fn get_mut<T: 'static>(&mut self) -> Option<&mut T> {
+                    if (&mut () as &mut dyn $crate::Any)
+                        .downcast_mut::<T>()
+                        .is_some()
+                    {
+                        // Safety:
+                        //
+                        // Safe since `()` is a ZST.
+                        return Some(unsafe { ::core::ptr::NonNull::dangling().as_mut() });
+                    }
+                    match self.as_erased_mut() {
+                        $crate::ErasedInnerMut::None => None,
+                        $crate::ErasedInnerMut::Any(any) => any.downcast_mut(),
+                        $crate::ErasedInnerMut::Joined(a, b) => a.get_mut().or_else(|| b.get_mut()),
+                        $crate::ErasedInnerMut::Struct(s) => {
+                            let mut idx = 0;
+                            loop {
+                                // To get around a borrow checker issue with returned type.
+                                // 
+                                // # Safety
+                                // 
+                                // Safe since we can only return one field.
+                                let s = unsafe {(s as *mut dyn $crate::TypeReflect).as_mut()}.unwrap();
+                                let field = s.get_field_mut(idx)?;
+                                if let Some(result) = field.downcast_mut() {
+                                    return Some(result);
+                                }
+                                idx += 1;
+                            }
+                        }
+                    }
+                }
             }
-            fn as_erased_mut(&mut self) -> $crate::ErasedInnerMut<'_> {
-                $crate::ErasedInnerMut::Any(self)
-            }
-            fn as_erased_ptr(&self) -> $crate::ErasedInnerPtr<'_> {
-                $crate::ErasedInnerPtr::Any(self)
-            }
-        }
-
-        unsafe impl<$($a)*> $crate::MetaTuple for $ty<$($b)*> where Self: 'static {
-            /// Obtain an item, if exists.
-            fn get<__T: 'static>(&self) -> Option<&__T> {
-                (self as &dyn $crate::Any).downcast_ref()
-            }
-            /// Obtain a mutable item, if exists.
-            fn get_mut<__T: 'static>(&mut self) -> Option<&mut __T> {
-                (self as &mut dyn $crate::Any).downcast_mut()
-            }
-            fn get_mut_ptr<__T: 'static>(&self) -> Option<*mut __T> {
-                (self as &dyn $crate::Any).downcast_ref()
-                    .map(|x| x as *const __T as *mut __T)
-            }
-        }
+        };
     };
 }

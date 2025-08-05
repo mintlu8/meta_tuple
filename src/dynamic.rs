@@ -1,11 +1,17 @@
 use crate::{Join, MetaItem, MetaTuple};
 use core::{any::Any, ptr::NonNull};
 
+pub trait TypeReflect {
+    fn get_field(&self, idx: usize) -> Option<&dyn Any>;
+    fn get_field_mut(&mut self, idx: usize) -> Option<&mut dyn Any>;
+}
+
 /// Erased [`MetaTuple`].
 pub enum ErasedInner<'t> {
     None,
     Any(&'t dyn Any),
     Joined(&'t dyn MetaBox, &'t dyn MetaBox),
+    Struct(&'t dyn TypeReflect),
 }
 
 /// Erased mutable [`MetaTuple`].
@@ -13,6 +19,7 @@ pub enum ErasedInnerMut<'t> {
     None,
     Any(&'t mut dyn Any),
     Joined(&'t mut dyn MetaBox, &'t mut dyn MetaBox),
+    Struct(&'t mut dyn TypeReflect),
 }
 
 /// Erased [`MetaTuple`].
@@ -20,6 +27,7 @@ pub enum ErasedInnerPtr<'t> {
     None,
     Any(&'t dyn Any),
     Joined(&'t dyn MetaBox, &'t dyn MetaBox),
+    Struct(&'t dyn TypeReflect),
 }
 
 /// A dyn compatible alternative to [`Any`] that can contain multiple items.
@@ -47,60 +55,6 @@ pub unsafe trait MetaBox {
 use crate::impl_meta_box;
 impl_meta_box!(MetaBox);
 
-/// Add the `get` and `get_mut` function on subtraits of [`Metabox`].
-///
-/// Syntax
-///
-/// ```
-/// # use meta_tuple::*;
-/// trait Metadata: MetaBox + 'static {}
-///
-/// impl_meta_box!(Metadata);
-/// ```
-#[macro_export]
-macro_rules! impl_meta_box {
-    ($trait: ident) => {
-        const _: () = {
-            use $crate::MetaBox;
-            impl dyn $trait + '_ {
-                /// Obtain an item if it exists in the [`MetaBox`].
-                ///
-                /// Always returns `Some` for `()`.
-                pub fn get<T: 'static>(&self) -> Option<&T> {
-                    if let Some(value) = (&() as &dyn $crate::Any).downcast_ref() {
-                        return Some(value);
-                    }
-                    match self.as_erased() {
-                        $crate::ErasedInner::None => None,
-                        $crate::ErasedInner::Any(any) => any.downcast_ref(),
-                        $crate::ErasedInner::Joined(a, b) => a.get().or_else(|| b.get()),
-                    }
-                }
-
-                /// Obtain an item if it exists in the [`MetaBox`].
-                ///
-                /// Always returns `Some` for `()`.
-                pub fn get_mut<T: 'static>(&mut self) -> Option<&mut T> {
-                    if (&mut () as &mut dyn $crate::Any)
-                        .downcast_mut::<T>()
-                        .is_some()
-                    {
-                        // Safety:
-                        //
-                        // Safe since `()` is a ZST.
-                        return Some(unsafe { ::core::ptr::NonNull::dangling().as_mut() });
-                    }
-                    match self.as_erased_mut() {
-                        $crate::ErasedInnerMut::None => None,
-                        $crate::ErasedInnerMut::Any(any) => any.downcast_mut(),
-                        $crate::ErasedInnerMut::Joined(a, b) => a.get_mut().or_else(|| b.get_mut()),
-                    }
-                }
-            }
-        };
-    };
-}
-
 impl dyn MetaBox + '_ {
     /// Obtain an item if it exists in the [`MetaBox`].
     ///
@@ -113,6 +67,16 @@ impl dyn MetaBox + '_ {
             ErasedInnerPtr::None => None,
             ErasedInnerPtr::Any(any) => any.downcast_ref().map(|x| x as *const T as *mut T),
             ErasedInnerPtr::Joined(a, b) => a.get_ptr().or_else(|| b.get_ptr()),
+            ErasedInnerPtr::Struct(s) => {
+                let mut idx = 0;
+                while let Some(field) = s.get_field(idx) {
+                    if let Some(result) = field.downcast_ref() {
+                        return Some(result as *const T as *mut T);
+                    }
+                    idx += 1;
+                }
+                None
+            }
         }
     }
 }

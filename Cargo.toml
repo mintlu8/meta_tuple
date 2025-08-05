@@ -1,6 +1,9 @@
+[workspace]
+members = ["derive"]
+
 [package]
 name = "meta_tuple"
-version = "0.2.1"
+version = "0.3.0"
 edition = "2024"
 
 authors = ["Mincong Lu <mintlux667@gmail.com>"]
@@ -13,7 +16,13 @@ A statically typed opaque tuple that can contain any type.
 """
 keywords = ["tuple", "any", "downcast"]
 
+[lib]
+doctest = false
+
 [features]
-default = ["std"]
-std = []
+default = ["derive"]
+derive = ["meta_tuple_derive"]
+
+[dependencies]
+meta_tuple_derive = { version = "0.1", path = "./derive", optional = true }
 
