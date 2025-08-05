@@ -77,6 +77,9 @@ pub struct MyTuple {
     pub float: f32,
 }
 
+#[derive(Debug, MetaTuple)]
+pub struct MyTuple2(&'static str, Vec<u8>, i32);
+
 #[test]
 pub fn test_query() {
     let tuple = MyTuple {
