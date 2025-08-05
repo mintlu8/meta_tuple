@@ -19,7 +19,7 @@ pub fn derive_meta_item(tokens: TokenStream) -> TokenStream {
     inject_static_bounds(&mut input.generics);
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
     quote! {
-        unsafe impl #impl_generics ::meta_tuple::MetaBox for #name #ty_generics #where_clause {
+        unsafe impl #impl_generics ::meta_tuple::MetaAny for #name #ty_generics #where_clause {
             fn as_erased(&self) -> ::meta_tuple::ErasedInner<'_> {
                 ::meta_tuple::ErasedInner::Any(self)
             }
@@ -75,7 +75,7 @@ pub fn derive_meta_tuple(tokens: TokenStream) -> TokenStream {
     let indices: Vec<_> = (0..fields.len()).collect();
 
     quote! {
-        impl #impl_generics ::meta_tuple::TypeReflect for #name #ty_generics #where_clause {
+        impl #impl_generics ::meta_tuple::MetaBundle for #name #ty_generics #where_clause {
             fn get_field(&self, index: usize) -> Option<&dyn ::core::any::Any> {
                 match index {
                     #(#indices => Some(&self.#fields),)*
@@ -91,35 +91,35 @@ pub fn derive_meta_tuple(tokens: TokenStream) -> TokenStream {
             }
         }
 
-        unsafe impl #impl_generics ::meta_tuple::MetaBox for #name #ty_generics #where_clause {
-            fn as_erased(&self) -> ErasedInner<'_> {
+        unsafe impl #impl_generics ::meta_tuple::MetaAny for #name #ty_generics #where_clause {
+            fn as_erased(&self) -> ::meta_tuple::ErasedInner<'_> {
                 ::meta_tuple::ErasedInner::Struct(self)
             }
 
-            fn as_erased_mut(&mut self) -> ErasedInnerMut<'_> {
+            fn as_erased_mut(&mut self) -> ::meta_tuple::ErasedInnerMut<'_> {
                 ::meta_tuple::ErasedInnerMut::Struct(self)
             }
 
-            fn as_erased_ptr(&self) -> ErasedInnerPtr<'_> {
+            fn as_erased_ptr(&self) -> ::meta_tuple::ErasedInnerPtr<'_> {
                 ::meta_tuple::ErasedInnerPtr::Struct(self)
             }
         }
         
         unsafe impl #impl_generics ::meta_tuple::MetaTuple for #name #ty_generics #where_clause {
             fn get<__T: 'static>(&self) -> Option<&__T> {
-                #(if let Some(result) = (self.#fields as &dyn ::core::any::Any).downcast_ref() {
+                #(if let Some(result) = (&self.#fields as &dyn ::core::any::Any).downcast_ref() {
                     return Some(result);
                 })*
                 None
             }
             fn get_mut<__T: 'static>(&mut self) -> Option<&mut __T> {
-                #(if let Some(result) = (self.#fields as &mut dyn ::core::any::Any).downcast_mut() {
+                #(if let Some(result) = (&mut self.#fields as &mut dyn ::core::any::Any).downcast_mut() {
                     return Some(result);
                 })*
                 None
             }
             fn get_mut_ptr<__T: 'static>(&self) -> Option<*mut __T> {
-                #(if let Some(result) = (self.#fields as &dyn ::core::any::Any).downcast_ref() {
+                #(if let Some(result) = (&self.#fields as &dyn ::core::any::Any).downcast_ref() {
                     return Some(result as *const __T as *mut __T);
                 })*
                 None

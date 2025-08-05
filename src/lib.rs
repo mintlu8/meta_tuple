@@ -14,6 +14,8 @@ pub use item::MetaItem;
 #[cfg(feature = "derive")]
 pub use meta_tuple_derive::{MetaItem, MetaTuple};
 
+use crate::query::MetaQuery;
+
 /// A statically typed opaque tuple that can contain any type.
 ///
 /// This is a zero cost abstraction in most cases. To create, see macro [`meta_tuple!`].
@@ -44,13 +46,16 @@ pub use meta_tuple_derive::{MetaItem, MetaTuple};
 /// # Semantics
 ///
 /// For functions like `get`, we look for the first correct item, duplicated items will not be used.
-///
-/// `&impl MetaTuple` and `&mut impl MetaTuple` both implement MetaTuple,
-/// for a tuple like `(&A, A)`, `get` returns the first value while `get_mut` returns the second value.
+/// `&impl MetaTuple` and `&mut impl MetaTuple` both implement MetaTuple.
+/// 
+/// ## Warning
+/// Due to our semantics, for a tuple like `(&A, A)`, 
+/// `get` returns the first value while `get_mut` returns the second value,
+/// since `&A` cannot return a `&mut A`.
 ///
 /// # Dyn Compatibility
 ///
-/// For a boxed dynamic version, see super trait [`MetaBox`].
+/// For a boxed dynamic version, see super trait [`MetaAny`].
 ///
 /// # Safety
 ///
@@ -66,7 +71,7 @@ pub use meta_tuple_derive::{MetaItem, MetaTuple};
 /// ```
 ///
 /// The implementation can return `A`, or `(B, C)` but not both.
-pub unsafe trait MetaTuple: MetaBox {
+pub unsafe trait MetaTuple: MetaAny {
     /// Obtain an item, if exists.
     fn get<T: 'static>(&self) -> Option<&T>;
     /// Obtain a mutable item, if exists.
@@ -106,6 +111,16 @@ pub unsafe trait MetaTuple: MetaBox {
         Self: Sized,
     {
         Join(self, other)
+    }
+
+    /// Try obtain multiple values from the [`MetaTuple`].
+    fn query_ref<T: MetaQuery>(&self) -> Option<T::Output<'_>> {
+        T::query_ref(self)
+    }
+
+    /// Try obtain multiple values from the [`MetaTuple`].
+    fn query_mut<T: MetaQuery>(&mut self) -> Option<T::Output<'_>> {
+        T::query_mut(self)
     }
 }
 

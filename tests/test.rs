@@ -1,6 +1,6 @@
 use core::fmt::Display;
 
-use meta_tuple::{meta_tuple, meta_tuple_type, IntoMetaTuple, MetaBox, MetaItem, MetaTuple};
+use meta_tuple::{meta_tuple, meta_tuple_type, IntoMetaTuple, MetaAny, MetaItem, MetaTuple};
 
 #[derive(Debug, PartialEq, Eq, MetaItem)]
 struct MyType;
@@ -49,7 +49,7 @@ pub fn test() {
     assert_eq!(d.get::<MyType>(), Some(&MyType));
     assert_eq!(d.get::<Vec<i32>>(), Some(&vec![1, 2]));
 
-    let e: Box<dyn MetaBox> = Box::new(d);
+    let e: Box<dyn MetaAny> = Box::new(d);
     assert_eq!(e.get::<i32>(), Some(&1));
     assert_eq!(e.get::<f32>(), Some(&4.0));
     assert_eq!(e.get::<String>(), Some(&s));
@@ -67,4 +67,26 @@ pub fn test() {
     assert_eq!(f.get::<i32>(), Some(&1));
     assert_eq!(f.get::<f32>(), Some(&4.5));
     assert_eq!(f.get::<&str>(), Some(&"hi"));
+}
+
+#[derive(Debug, MetaTuple)]
+pub struct MyTuple {
+    pub int: i32,
+    pub string: String,
+    pub char: char,
+    pub float: f32,
+}
+
+#[test]
+pub fn test_query() {
+    let tuple = MyTuple {
+        int: 21,
+        string: "Hello".to_owned(),
+        char: 'c',
+        float: 3.1,
+    };
+    assert_eq!(tuple.query_ref::<()>(), Some(()));
+    assert_eq!(tuple.query_ref::<(&i32, &char)>(), Some((&21, &'c')));
+    assert_eq!(tuple.query_ref::<(&f32, &String, &i32)>(), Some((&3.1, &"Hello".to_owned(), &21)));
+    assert_eq!(tuple.query_ref::<(&f32, &&str, &i32)>(), None);
 }

@@ -1,4 +1,4 @@
-use crate::{MetaBox, MetaTuple};
+use crate::{MetaAny, MetaTuple};
 use core::any::TypeId;
 
 pub trait MetaQuerySingle: MetaQuery {
@@ -12,21 +12,21 @@ pub trait MetaQuerySingle: MetaQuery {
 pub trait MetaQuery {
     type Output<'t>: Sized;
     type OutputPtr<'t>: Sized;
-    fn query_ref<'t, T: MetaTuple + 't>(input: &'t T) -> Option<Self::Output<'t>>;
+    fn query_ref<'t, T: MetaTuple + ?Sized + 't>(input: &'t T) -> Option<Self::Output<'t>>;
 
-    fn query_mut<'t, T: MetaTuple + 't>(input: &'t mut T) -> Option<Self::Output<'t>> {
+    fn query_mut<'t, T: MetaTuple + ?Sized + 't>(input: &'t mut T) -> Option<Self::Output<'t>> {
         let input = Self::query_mut_ptr(input)?;
         Some(unsafe { Self::from_ptr(input) })
     }
 
-    fn query_dyn_ref<'t>(input: &'t dyn MetaBox) -> Option<Self::Output<'t>>;
-    fn query_dyn_mut<'t>(input: &'t mut dyn MetaBox) -> Option<Self::Output<'t>> {
+    fn query_dyn_ref<'t>(input: &'t dyn MetaAny) -> Option<Self::Output<'t>>;
+    fn query_dyn_mut<'t>(input: &'t mut dyn MetaAny) -> Option<Self::Output<'t>> {
         let input = Self::query_dyn_mut_ptr(input)?;
         Some(unsafe { Self::from_ptr(input) })
     }
 
-    fn query_mut_ptr<'t, T: MetaTuple + 't>(input: &'t T) -> Option<Self::OutputPtr<'t>>;
-    fn query_dyn_mut_ptr<'t>(input: &'t dyn MetaBox) -> Option<Self::OutputPtr<'t>>;
+    fn query_mut_ptr<'t, T: MetaTuple + ?Sized + 't>(input: &'t T) -> Option<Self::OutputPtr<'t>>;
+    fn query_dyn_mut_ptr<'t>(input: &'t dyn MetaAny) -> Option<Self::OutputPtr<'t>>;
     unsafe fn from_ptr<'t>(ptr: Self::OutputPtr<'t>) -> Self::Output<'t>;
 
     fn validate(self) -> bool;
@@ -35,19 +35,19 @@ pub trait MetaQuery {
 impl<A: 'static> MetaQuery for &A {
     type Output<'t> = &'t A;
 
-    fn query_ref<'t, T: MetaTuple + 't>(input: &'t T) -> Option<Self::Output<'t>> {
+    fn query_ref<'t, T: MetaTuple + ?Sized + 't>(input: &'t T) -> Option<Self::Output<'t>> {
         input.get()
     }
 
-    fn query_mut<'t, T: MetaTuple + 't>(input: &'t mut T) -> Option<Self::Output<'t>> {
+    fn query_mut<'t, T: MetaTuple + ?Sized + 't>(input: &'t mut T) -> Option<Self::Output<'t>> {
         (input as &T).get()
     }
 
-    fn query_dyn_ref<'t>(input: &'t dyn MetaBox) -> Option<Self::Output<'t>> {
+    fn query_dyn_ref<'t>(input: &'t dyn MetaAny) -> Option<Self::Output<'t>> {
         input.get()
     }
 
-    fn query_dyn_mut<'t>(input: &'t mut dyn MetaBox) -> Option<Self::Output<'t>> {
+    fn query_dyn_mut<'t>(input: &'t mut dyn MetaAny) -> Option<Self::Output<'t>> {
         input.get()
     }
 
@@ -57,11 +57,11 @@ impl<A: 'static> MetaQuery for &A {
         ptr
     }
 
-    fn query_mut_ptr<'t, T: MetaTuple + 't>(input: &'t T) -> Option<Self::OutputPtr<'t>> {
+    fn query_mut_ptr<'t, T: MetaTuple + ?Sized + 't>(input: &'t T) -> Option<Self::OutputPtr<'t>> {
         (input as &T).get()
     }
 
-    fn query_dyn_mut_ptr<'t>(input: &'t dyn MetaBox) -> Option<Self::OutputPtr<'t>> {
+    fn query_dyn_mut_ptr<'t>(input: &'t dyn MetaAny) -> Option<Self::OutputPtr<'t>> {
         input.get()
     }
 
@@ -79,19 +79,19 @@ impl<A: 'static> MetaQuerySingle for &A {
 impl<A: 'static> MetaQuery for &mut A {
     type Output<'t> = &'t mut A;
 
-    fn query_ref<'t, T: MetaTuple + 't>(_: &'t T) -> Option<Self::Output<'t>> {
+    fn query_ref<'t, T: MetaTuple + ?Sized + 't>(_: &'t T) -> Option<Self::Output<'t>> {
         None
     }
 
-    fn query_mut<'t, T: MetaTuple + 't>(input: &'t mut T) -> Option<Self::Output<'t>> {
+    fn query_mut<'t, T: MetaTuple + ?Sized + 't>(input: &'t mut T) -> Option<Self::Output<'t>> {
         input.get_mut()
     }
 
-    fn query_dyn_ref<'t>(_: &'t dyn MetaBox) -> Option<Self::Output<'t>> {
+    fn query_dyn_ref<'t>(_: &'t dyn MetaAny) -> Option<Self::Output<'t>> {
         None
     }
 
-    fn query_dyn_mut<'t>(input: &'t mut dyn MetaBox) -> Option<Self::Output<'t>> {
+    fn query_dyn_mut<'t>(input: &'t mut dyn MetaAny) -> Option<Self::Output<'t>> {
         input.get_mut()
     }
 
@@ -101,11 +101,11 @@ impl<A: 'static> MetaQuery for &mut A {
         unsafe { ptr.as_mut().unwrap() }
     }
 
-    fn query_mut_ptr<'t, T: MetaTuple + 't>(input: &'t T) -> Option<Self::OutputPtr<'t>> {
+    fn query_mut_ptr<'t, T: MetaTuple + ?Sized + 't>(input: &'t T) -> Option<Self::OutputPtr<'t>> {
         input.get_mut_ptr()
     }
 
-    fn query_dyn_mut_ptr<'t>(input: &'t dyn MetaBox) -> Option<Self::OutputPtr<'t>> {
+    fn query_dyn_mut_ptr<'t>(input: &'t dyn MetaAny) -> Option<Self::OutputPtr<'t>> {
         input.get_ptr()
     }
 
@@ -123,19 +123,19 @@ impl<A: 'static> MetaQuerySingle for &mut A {
 impl<A: 'static> MetaQuery for Option<&A> {
     type Output<'t> = Option<&'t A>;
 
-    fn query_ref<'t, T: MetaTuple + 't>(input: &'t T) -> Option<Self::Output<'t>> {
+    fn query_ref<'t, T: MetaTuple + ?Sized + 't>(input: &'t T) -> Option<Self::Output<'t>> {
         Some(input.get())
     }
 
-    fn query_mut<'t, T: MetaTuple + 't>(input: &'t mut T) -> Option<Self::Output<'t>> {
+    fn query_mut<'t, T: MetaTuple + ?Sized + 't>(input: &'t mut T) -> Option<Self::Output<'t>> {
         Some((input as &T).get())
     }
 
-    fn query_dyn_ref<'t>(input: &'t dyn MetaBox) -> Option<Self::Output<'t>> {
+    fn query_dyn_ref<'t>(input: &'t dyn MetaAny) -> Option<Self::Output<'t>> {
         Some(input.get())
     }
 
-    fn query_dyn_mut<'t>(input: &'t mut dyn MetaBox) -> Option<Self::Output<'t>> {
+    fn query_dyn_mut<'t>(input: &'t mut dyn MetaAny) -> Option<Self::Output<'t>> {
         Some(input.get())
     }
 
@@ -145,11 +145,11 @@ impl<A: 'static> MetaQuery for Option<&A> {
         ptr
     }
 
-    fn query_mut_ptr<'t, T: MetaTuple + 't>(input: &'t T) -> Option<Self::OutputPtr<'t>> {
+    fn query_mut_ptr<'t, T: MetaTuple + ?Sized + 't>(input: &'t T) -> Option<Self::OutputPtr<'t>> {
         Some((input as &T).get())
     }
 
-    fn query_dyn_mut_ptr<'t>(input: &'t dyn MetaBox) -> Option<Self::OutputPtr<'t>> {
+    fn query_dyn_mut_ptr<'t>(input: &'t dyn MetaAny) -> Option<Self::OutputPtr<'t>> {
         Some(input.get())
     }
 
@@ -167,19 +167,19 @@ impl<A: 'static> MetaQuerySingle for Option<&A> {
 impl<A: 'static> MetaQuery for Option<&mut A> {
     type Output<'t> = Option<&'t mut A>;
 
-    fn query_ref<'t, T: MetaTuple + 't>(_: &'t T) -> Option<Self::Output<'t>> {
+    fn query_ref<'t, T: MetaTuple + ?Sized + 't>(_: &'t T) -> Option<Self::Output<'t>> {
         Some(None)
     }
 
-    fn query_mut<'t, T: MetaTuple + 't>(input: &'t mut T) -> Option<Self::Output<'t>> {
+    fn query_mut<'t, T: MetaTuple + ?Sized + 't>(input: &'t mut T) -> Option<Self::Output<'t>> {
         Some(input.get_mut())
     }
 
-    fn query_dyn_ref<'t>(_: &'t dyn MetaBox) -> Option<Self::Output<'t>> {
+    fn query_dyn_ref<'t>(_: &'t dyn MetaAny) -> Option<Self::Output<'t>> {
         Some(None)
     }
 
-    fn query_dyn_mut<'t>(input: &'t mut dyn MetaBox) -> Option<Self::Output<'t>> {
+    fn query_dyn_mut<'t>(input: &'t mut dyn MetaAny) -> Option<Self::Output<'t>> {
         Some(input.get_mut())
     }
 
@@ -189,11 +189,11 @@ impl<A: 'static> MetaQuery for Option<&mut A> {
         ptr.map(|ptr| unsafe { ptr.as_mut().unwrap() })
     }
 
-    fn query_mut_ptr<'t, T: MetaTuple + 't>(input: &'t T) -> Option<Self::OutputPtr<'t>> {
+    fn query_mut_ptr<'t, T: MetaTuple + ?Sized + 't>(input: &'t T) -> Option<Self::OutputPtr<'t>> {
         Some(input.get_mut_ptr())
     }
 
-    fn query_dyn_mut_ptr<'t>(input: &'t dyn MetaBox) -> Option<Self::OutputPtr<'t>> {
+    fn query_dyn_mut_ptr<'t>(input: &'t dyn MetaAny) -> Option<Self::OutputPtr<'t>> {
         Some(input.get_ptr())
     }
 
@@ -221,11 +221,11 @@ macro_rules! impl_meta_query {
         impl<$($T: MetaQuerySingle + 'static),*> MetaQuery for ($($T,)*) {
             type Output<'t> = ($($T::Output<'t>,)*);
 
-            fn query_ref<'t, T: MetaTuple + 't>(input: &'t T) -> Option<Self::Output<'t>> {
+            fn query_ref<'t, T: MetaTuple + ?Sized + 't>(input: &'t T) -> Option<Self::Output<'t>> {
                 Some(($($T::query_ref(input)?,)*))
             }
 
-            fn query_dyn_ref<'t>(input: &'t dyn MetaBox) -> Option<Self::Output<'t>> {
+            fn query_dyn_ref<'t>(input: &'t dyn MetaAny) -> Option<Self::Output<'t>> {
                 Some(($($T::query_dyn_ref(input)?,)*))
             }
 
@@ -236,11 +236,11 @@ macro_rules! impl_meta_query {
                 ($(unsafe {$T::from_ptr($T)},)*)
             }
 
-            fn query_mut_ptr<'t, T: MetaTuple + 't>(input: &'t T) -> Option<Self::OutputPtr<'t>> {
+            fn query_mut_ptr<'t, T: MetaTuple + ?Sized + 't>(input: &'t T) -> Option<Self::OutputPtr<'t>> {
                 Some(($($T::query_mut_ptr(input)?,)*))
             }
 
-            fn query_dyn_mut_ptr<'t>(input: &'t dyn MetaBox) -> Option<Self::OutputPtr<'t>> {
+            fn query_dyn_mut_ptr<'t>(input: &'t dyn MetaAny) -> Option<Self::OutputPtr<'t>> {
                 Some(($($T::query_dyn_mut_ptr(input)?,)*))
             }
 

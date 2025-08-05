@@ -1,7 +1,8 @@
 use crate::{Join, MetaItem, MetaTuple};
 use core::{any::Any, ptr::NonNull};
 
-pub trait TypeReflect {
+/// Utility trait for erasing structs.
+pub trait MetaBundle {
     fn get_field(&self, idx: usize) -> Option<&dyn Any>;
     fn get_field_mut(&mut self, idx: usize) -> Option<&mut dyn Any>;
 }
@@ -10,24 +11,24 @@ pub trait TypeReflect {
 pub enum ErasedInner<'t> {
     None,
     Any(&'t dyn Any),
-    Joined(&'t dyn MetaBox, &'t dyn MetaBox),
-    Struct(&'t dyn TypeReflect),
+    Joined(&'t dyn MetaAny, &'t dyn MetaAny),
+    Struct(&'t dyn MetaBundle),
 }
 
 /// Erased mutable [`MetaTuple`].
 pub enum ErasedInnerMut<'t> {
     None,
     Any(&'t mut dyn Any),
-    Joined(&'t mut dyn MetaBox, &'t mut dyn MetaBox),
-    Struct(&'t mut dyn TypeReflect),
+    Joined(&'t mut dyn MetaAny, &'t mut dyn MetaAny),
+    Struct(&'t mut dyn MetaBundle),
 }
 
-/// Erased [`MetaTuple`].
+/// Erased [`MetaTuple`] that returns pointers.
 pub enum ErasedInnerPtr<'t> {
     None,
     Any(&'t dyn Any),
-    Joined(&'t dyn MetaBox, &'t dyn MetaBox),
-    Struct(&'t dyn TypeReflect),
+    Joined(&'t dyn MetaAny, &'t dyn MetaAny),
+    Struct(&'t dyn MetaBundle),
 }
 
 /// A dyn compatible alternative to [`Any`] that can contain multiple items.
@@ -46,17 +47,17 @@ pub enum ErasedInnerPtr<'t> {
 /// ```
 ///
 /// The implementation can return `A`, or `(B, C)` but not both.
-pub unsafe trait MetaBox {
+pub unsafe trait MetaAny {
     fn as_erased(&self) -> ErasedInner<'_>;
     fn as_erased_mut(&mut self) -> ErasedInnerMut<'_>;
     fn as_erased_ptr(&self) -> ErasedInnerPtr<'_>;
 }
 
 use crate::impl_meta_box;
-impl_meta_box!(MetaBox);
+impl_meta_box!(MetaAny);
 
-impl dyn MetaBox + '_ {
-    /// Obtain an item if it exists in the [`MetaBox`].
+impl dyn MetaAny + '_ {
+    /// Obtain an item if it exists in the [`MetaAny`].
     ///
     /// Always returns `Some` for `()`.
     pub fn get_ptr<T: 'static>(&self) -> Option<*mut T> {
@@ -81,7 +82,7 @@ impl dyn MetaBox + '_ {
     }
 }
 
-unsafe impl MetaBox for () {
+unsafe impl MetaAny for () {
     fn as_erased<'t>(&self) -> ErasedInner<'_> {
         ErasedInner::None
     }
@@ -95,9 +96,9 @@ unsafe impl MetaBox for () {
     }
 }
 
-unsafe impl<T: MetaBox> MetaBox for &T {
+unsafe impl<T: MetaAny> MetaAny for &T {
     fn as_erased<'t>(&self) -> ErasedInner<'_> {
-        MetaBox::as_erased(*self)
+        MetaAny::as_erased(*self)
     }
 
     fn as_erased_mut(&mut self) -> ErasedInnerMut<'_> {
@@ -109,21 +110,21 @@ unsafe impl<T: MetaBox> MetaBox for &T {
     }
 }
 
-unsafe impl<T: MetaBox> MetaBox for &mut T {
+unsafe impl<T: MetaAny> MetaAny for &mut T {
     fn as_erased<'t>(&self) -> ErasedInner<'_> {
-        MetaBox::as_erased(*self)
+        MetaAny::as_erased(*self)
     }
 
     fn as_erased_mut(&mut self) -> ErasedInnerMut<'_> {
-        MetaBox::as_erased_mut(*self)
+        MetaAny::as_erased_mut(*self)
     }
 
     fn as_erased_ptr(&self) -> ErasedInnerPtr<'_> {
-        MetaBox::as_erased_ptr(*self)
+        MetaAny::as_erased_ptr(*self)
     }
 }
 
-unsafe impl<T: 'static> MetaBox for MetaItem<T> {
+unsafe impl<T: 'static> MetaAny for MetaItem<T> {
     fn as_erased<'t>(&self) -> ErasedInner<'_> {
         ErasedInner::Any(&self.0)
     }
@@ -137,7 +138,7 @@ unsafe impl<T: 'static> MetaBox for MetaItem<T> {
     }
 }
 
-unsafe impl<T: 'static> MetaBox for Option<T> {
+unsafe impl<T: 'static> MetaAny for Option<T> {
     fn as_erased<'t>(&self) -> ErasedInner<'_> {
         match self.as_ref() {
             Some(value) => ErasedInner::Any(value),
@@ -160,7 +161,7 @@ unsafe impl<T: 'static> MetaBox for Option<T> {
     }
 }
 
-unsafe impl<A: MetaTuple, B: MetaTuple> MetaBox for Join<A, B> {
+unsafe impl<A: MetaTuple, B: MetaTuple> MetaAny for Join<A, B> {
     fn as_erased<'t>(&self) -> ErasedInner<'_> {
         ErasedInner::Joined(&self.0, &self.1)
     }

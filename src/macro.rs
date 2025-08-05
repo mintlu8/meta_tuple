@@ -1,5 +1,5 @@
 #[allow(unused)]
-use crate::{IntoMetaTuple, MetaItem, MetaTuple};
+use crate::{IntoMetaTuple, MetaItem, MetaTuple, MetaAny};
 
 /// Create a [`MetaTuple`].
 ///
@@ -101,13 +101,13 @@ macro_rules! meta_tuple_type {
     };
 }
 
-/// Add the `get` and `get_mut` function on subtraits of [`Metabox`].
+/// Add the `get` and `get_mut` function on subtraits of [`MetaAny`].
 ///
 /// Syntax
 ///
 /// ```
 /// # use meta_tuple::*;
-/// trait Metadata: MetaBox + 'static {}
+/// trait Metadata: MetaAny + 'static {}
 ///
 /// impl_meta_box!(Metadata);
 /// ```
@@ -115,9 +115,9 @@ macro_rules! meta_tuple_type {
 macro_rules! impl_meta_box {
     ($trait: ident) => {
         const _: () = {
-            use $crate::MetaBox;
+            use $crate::MetaAny;
             impl dyn $trait + '_ {
-                /// Obtain an item if it exists in the [`MetaBox`].
+                /// Obtain an item if it exists in the [`MetaAny`].
                 ///
                 /// Always returns `Some` for `()`.
                 pub fn get<T: 'static>(&self) -> Option<&T> {
@@ -141,7 +141,7 @@ macro_rules! impl_meta_box {
                     }
                 }
 
-                /// Obtain an item if it exists in the [`MetaBox`].
+                /// Obtain an item if it exists in the [`MetaAny`].
                 ///
                 /// Always returns `Some` for `()`.
                 pub fn get_mut<T: 'static>(&mut self) -> Option<&mut T> {
@@ -166,7 +166,7 @@ macro_rules! impl_meta_box {
                                 // # Safety
                                 // 
                                 // Safe since we can only return one field.
-                                let s = unsafe {(s as *mut dyn $crate::TypeReflect).as_mut()}.unwrap();
+                                let s = unsafe {(s as *mut dyn $crate::MetaBundle).as_mut()}.unwrap();
                                 let field = s.get_field_mut(idx)?;
                                 if let Some(result) = field.downcast_mut() {
                                     return Some(result);
