@@ -1,6 +1,6 @@
 use core::fmt::Display;
 
-use meta_tuple::{meta_tuple, meta_tuple_type, IntoMetaTuple, MetaAny, MetaItem, MetaTuple};
+use meta_tuple::{meta_tuple, meta_tuple_type, IntoMetaTuple, MetaAny, MetaItem, MetaQuery, MetaTuple};
 
 #[derive(Debug, PartialEq, Eq, MetaItem)]
 struct MyType;
@@ -80,6 +80,27 @@ pub struct MyTuple {
 #[derive(Debug, MetaTuple)]
 pub struct MyTuple2(&'static str, Vec<u8>, i32);
 
+#[derive(Debug, MetaQuery, PartialEq, Eq)]
+pub struct IntQuery<'t> {
+    pub a: &'t i32,
+}
+
+#[derive(Debug, MetaQuery, PartialEq, Eq)]
+pub struct IntQuery2<'t>(&'t i32);
+
+#[derive(Debug, MetaQuery, PartialEq, Eq)]
+pub struct MyQuery<'t> {
+    pub a: &'t i32,
+    pub b: &'t &'static str,
+}
+
+#[derive(Debug, MetaQuery, PartialEq, Eq)]
+pub struct MyGenericQuery<'t, A, B> {
+    pub a: &'t A,
+    pub b: &'t B,
+}
+
+
 #[test]
 pub fn test_query() {
     let tuple = MyTuple {
@@ -90,6 +111,15 @@ pub fn test_query() {
     };
     assert_eq!(tuple.query_ref::<()>(), Some(()));
     assert_eq!(tuple.query_ref::<(&i32, &char)>(), Some((&21, &'c')));
-    assert_eq!(tuple.query_ref::<(&f32, &String, &i32)>(), Some((&3.1, &"Hello".to_owned(), &21)));
+    assert_eq!(
+        tuple.query_ref::<(&f32, &String, &i32)>(),
+        Some((&3.1, &"Hello".to_owned(), &21))
+    );
     assert_eq!(tuple.query_ref::<(&f32, &&str, &i32)>(), None);
+
+    let tuple2 = MyTuple2("1", vec![1, 2, 3], 4);
+    assert_eq!(tuple2.query_ref::<IntQuery>(), Some(IntQuery { a: &4 }));
+    assert_eq!(tuple2.query_ref::<IntQuery2>(), Some(IntQuery2(&4)));
+    assert_eq!(tuple2.query_ref::<MyQuery>(), Some(MyQuery { a: &4, b: &"1" }));
+    assert_eq!(tuple2.query_ref::<MyGenericQuery<&str, Vec<u8>>>(), Some(MyGenericQuery { a: &"1", b: &vec![1, 2, 3] }));
 }

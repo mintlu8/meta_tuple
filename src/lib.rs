@@ -10,11 +10,13 @@ pub use core::any::Any;
 pub use dynamic::*;
 pub use into::IntoMetaTuple;
 pub use item::MetaItem;
+pub use query::MetaQuery;
+#[doc(hidden)]
+pub use query::MetaQuerySingle;
 
 #[cfg(feature = "derive")]
-pub use meta_tuple_derive::{MetaItem, MetaTuple};
+pub use meta_tuple_derive::{MetaItem, MetaTuple, MetaQuery};
 
-use crate::query::MetaQuery;
 
 /// A statically typed opaque tuple that can contain any type.
 ///
@@ -47,9 +49,9 @@ use crate::query::MetaQuery;
 ///
 /// For functions like `get`, we look for the first correct item, duplicated items will not be used.
 /// `&impl MetaTuple` and `&mut impl MetaTuple` both implement MetaTuple.
-/// 
+///
 /// ## Warning
-/// Due to our semantics, for a tuple like `(&A, A)`, 
+/// Due to our semantics, for a tuple like `(&A, A)`,
 /// `get` returns the first value while `get_mut` returns the second value,
 /// since `&A` cannot return a `&mut A`.
 ///
@@ -211,7 +213,8 @@ unsafe impl<T: 'static> MetaTuple for Option<T> {
     }
 }
 
-#[derive(Debug, Clone, Copy, Default)]
+/// Joins 2 [`MetaTuple`]s.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Join<A, B>(pub A, pub B);
 
 unsafe impl<A: MetaTuple, B: MetaTuple> MetaTuple for Join<A, B> {

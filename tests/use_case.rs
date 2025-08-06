@@ -1,4 +1,4 @@
-use meta_tuple::{meta_tuple, meta_tuple_type, MetaItem, MetaTuple};
+use meta_tuple::{MetaItem, MetaTuple, meta_tuple, meta_tuple_type};
 
 pub struct Attack;
 pub struct Attacker;
@@ -16,7 +16,10 @@ impl Attack {
 pub trait CardComponent {
     fn play(&self, input: impl MetaTuple) -> impl MetaTuple;
 
-    fn join(self, other: impl CardComponent) -> impl CardComponent where Self: Sized{
+    fn join(self, other: impl CardComponent) -> impl CardComponent
+    where
+        Self: Sized,
+    {
         Join(self, other)
     }
 }
@@ -24,7 +27,7 @@ pub trait CardComponent {
 pub struct Join<A, B>(A, B);
 
 impl<A: CardComponent, B: CardComponent> CardComponent for Join<A, B> {
-    fn play(&self, input: impl MetaTuple) -> impl MetaTuple{
+    fn play(&self, input: impl MetaTuple) -> impl MetaTuple {
         let out = self.0.play(input);
         self.1.play(out)
     }
@@ -43,7 +46,10 @@ pub trait CardComponent2 {
     type Out: MetaTuple;
     fn play<T: MetaTuple>(&self, input: &T) -> Self::Out;
 
-    fn join(self, other: impl CardComponent2) -> impl CardComponent2 where Self: Sized{
+    fn join(self, other: impl CardComponent2) -> impl CardComponent2
+    where
+        Self: Sized,
+    {
         Join(self, other)
     }
 }

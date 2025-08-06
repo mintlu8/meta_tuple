@@ -1,38 +1,54 @@
 use crate::{MetaAny, MetaTuple};
-use core::any::TypeId;
+use core::any::{type_name, TypeId};
 
 pub trait MetaQuerySingle: MetaQuery {
-    fn unique_type_id() -> Option<TypeId>;
+    fn unique_type_id() -> TypeId;
 
     fn compatible<T: MetaQuerySingle>() -> bool {
-        !(Self::unique_type_id() == T::unique_type_id() && Self::unique_type_id().is_some())
+        Self::unique_type_id() != T::unique_type_id()
     }
 }
 
-pub trait MetaQuery {
+/// Query into a [`MetaTuple`].
+/// 
+/// By default implemented on tuples like `(&i32, &String)`.
+/// 
+/// # Safety
+/// 
+/// `validate` must ensure no duplicate fields are queried.
+pub unsafe trait MetaQuery {
     type Output<'t>: Sized;
     type OutputPtr<'t>: Sized;
     fn query_ref<'t, T: MetaTuple + ?Sized + 't>(input: &'t T) -> Option<Self::Output<'t>>;
 
     fn query_mut<'t, T: MetaTuple + ?Sized + 't>(input: &'t mut T) -> Option<Self::Output<'t>> {
+        if !Self::validate() {
+            panic!("{} is not a valid MetaQuery.", type_name::<Self>());
+        }
         let input = Self::query_mut_ptr(input)?;
         Some(unsafe { Self::from_ptr(input) })
     }
 
     fn query_dyn_ref<'t>(input: &'t dyn MetaAny) -> Option<Self::Output<'t>>;
     fn query_dyn_mut<'t>(input: &'t mut dyn MetaAny) -> Option<Self::Output<'t>> {
+        if !Self::validate() {
+            panic!("{} is not a valid MetaQuery.", type_name::<Self>());
+        }
         let input = Self::query_dyn_mut_ptr(input)?;
         Some(unsafe { Self::from_ptr(input) })
     }
 
     fn query_mut_ptr<'t, T: MetaTuple + ?Sized + 't>(input: &'t T) -> Option<Self::OutputPtr<'t>>;
     fn query_dyn_mut_ptr<'t>(input: &'t dyn MetaAny) -> Option<Self::OutputPtr<'t>>;
+    /// # Safety
+    /// 
+    /// Input must point to valid data.
     unsafe fn from_ptr<'t>(ptr: Self::OutputPtr<'t>) -> Self::Output<'t>;
 
-    fn validate(self) -> bool;
+    fn validate() -> bool;
 }
 
-impl<A: 'static> MetaQuery for &A {
+unsafe impl<A: 'static> MetaQuery for &A {
     type Output<'t> = &'t A;
 
     fn query_ref<'t, T: MetaTuple + ?Sized + 't>(input: &'t T) -> Option<Self::Output<'t>> {
@@ -65,18 +81,18 @@ impl<A: 'static> MetaQuery for &A {
         input.get()
     }
 
-    fn validate(self) -> bool {
+    fn validate() -> bool {
         true
     }
 }
 
 impl<A: 'static> MetaQuerySingle for &A {
-    fn unique_type_id() -> Option<TypeId> {
-        None
+    fn unique_type_id() -> TypeId {
+        TypeId::of::<A>()
     }
 }
 
-impl<A: 'static> MetaQuery for &mut A {
+unsafe impl<A: 'static> MetaQuery for &mut A {
     type Output<'t> = &'t mut A;
 
     fn query_ref<'t, T: MetaTuple + ?Sized + 't>(_: &'t T) -> Option<Self::Output<'t>> {
@@ -109,18 +125,18 @@ impl<A: 'static> MetaQuery for &mut A {
         input.get_ptr()
     }
 
-    fn validate(self) -> bool {
+    fn validate() -> bool {
         true
     }
 }
 
 impl<A: 'static> MetaQuerySingle for &mut A {
-    fn unique_type_id() -> Option<TypeId> {
-        Some(TypeId::of::<A>())
+    fn unique_type_id() -> TypeId {
+        TypeId::of::<A>()
     }
 }
 
-impl<A: 'static> MetaQuery for Option<&A> {
+unsafe impl<A: 'static> MetaQuery for Option<&A> {
     type Output<'t> = Option<&'t A>;
 
     fn query_ref<'t, T: MetaTuple + ?Sized + 't>(input: &'t T) -> Option<Self::Output<'t>> {
@@ -153,18 +169,18 @@ impl<A: 'static> MetaQuery for Option<&A> {
         Some(input.get())
     }
 
-    fn validate(self) -> bool {
+    fn validate() -> bool {
         true
     }
 }
 
 impl<A: 'static> MetaQuerySingle for Option<&A> {
-    fn unique_type_id() -> Option<TypeId> {
-        None
+    fn unique_type_id() -> TypeId {
+        TypeId::of::<A>()
     }
 }
 
-impl<A: 'static> MetaQuery for Option<&mut A> {
+unsafe impl<A: 'static> MetaQuery for Option<&mut A> {
     type Output<'t> = Option<&'t mut A>;
 
     fn query_ref<'t, T: MetaTuple + ?Sized + 't>(_: &'t T) -> Option<Self::Output<'t>> {
@@ -197,14 +213,14 @@ impl<A: 'static> MetaQuery for Option<&mut A> {
         Some(input.get_ptr())
     }
 
-    fn validate(self) -> bool {
+    fn validate() -> bool {
         true
     }
 }
 
 impl<A: 'static> MetaQuerySingle for Option<&mut A> {
-    fn unique_type_id() -> Option<TypeId> {
-        Some(TypeId::of::<A>())
+    fn unique_type_id() -> TypeId {
+        TypeId::of::<A>()
     }
 }
 
@@ -218,7 +234,7 @@ macro_rules! validate {
 macro_rules! impl_meta_query {
     ($($T: ident)*) => {
         #[allow(unused_variables, non_snake_case, clippy::unused_unit)]
-        impl<$($T: MetaQuerySingle + 'static),*> MetaQuery for ($($T,)*) {
+        unsafe impl<$($T: MetaQuerySingle + 'static),*> MetaQuery for ($($T,)*) {
             type Output<'t> = ($($T::Output<'t>,)*);
 
             fn query_ref<'t, T: MetaTuple + ?Sized + 't>(input: &'t T) -> Option<Self::Output<'t>> {
@@ -244,7 +260,7 @@ macro_rules! impl_meta_query {
                 Some(($($T::query_dyn_mut_ptr(input)?,)*))
             }
 
-            fn validate(self) -> bool {
+            fn validate() -> bool {
                 validate!($($T)*)
             }
         }

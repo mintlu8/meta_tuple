@@ -1,5 +1,5 @@
 #[allow(unused)]
-use crate::{IntoMetaTuple, MetaItem, MetaTuple, MetaAny};
+use crate::{IntoMetaTuple, MetaAny, MetaItem, MetaTuple};
 
 /// Create a [`MetaTuple`].
 ///
@@ -162,11 +162,12 @@ macro_rules! impl_meta_box {
                             let mut idx = 0;
                             loop {
                                 // To get around a borrow checker issue with returned type.
-                                // 
+                                //
                                 // # Safety
-                                // 
+                                //
                                 // Safe since we can only return one field.
-                                let s = unsafe {(s as *mut dyn $crate::MetaBundle).as_mut()}.unwrap();
+                                let s =
+                                    unsafe { (s as *mut dyn $crate::MetaBundle).as_mut() }.unwrap();
                                 let field = s.get_field_mut(idx)?;
                                 if let Some(result) = field.downcast_mut() {
                                     return Some(result);
