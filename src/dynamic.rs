@@ -53,8 +53,8 @@ pub unsafe trait MetaAny {
     fn as_erased_ptr(&self) -> ErasedInnerPtr<'_>;
 }
 
-use crate::impl_meta_box;
-impl_meta_box!(MetaAny);
+use crate::impl_meta_any;
+impl_meta_any!(MetaAny);
 
 impl dyn MetaAny + '_ {
     /// Obtain an item if it exists in the [`MetaAny`].

@@ -1,7 +1,7 @@
 use proc_macro::TokenStream;
 use proc_macro2::{Literal, Span, TokenTree};
 use quote::{format_ident, quote};
-use syn::{parse_macro_input, DeriveInput, GenericParam, Generics, Lifetime};
+use syn::{DeriveInput, GenericParam, Generics, Lifetime, parse_macro_input};
 
 fn inject_static_bounds(input: &mut Generics) {
     for param in &mut input.params {
@@ -108,7 +108,7 @@ pub fn derive_meta_tuple(tokens: TokenStream) -> TokenStream {
                 ::meta_tuple::ErasedInnerPtr::Struct(self)
             }
         }
-        
+
         unsafe impl #impl_generics ::meta_tuple::MetaTuple for #name #ty_generics #where_clause {
             fn get<__T: 'static>(&self) -> Option<&__T> {
                 #(if let Some(result) = (&self.#fields as &dyn ::core::any::Any).downcast_ref() {
@@ -133,9 +133,9 @@ pub fn derive_meta_tuple(tokens: TokenStream) -> TokenStream {
 }
 
 /// Fetch individual items from a `MetaTuple`.
-/// 
+///
 /// # Syntax
-/// 
+///
 /// ```
 /// #[derive(MetaQuery)]
 /// pub struct MyQuery<'t> {
@@ -143,9 +143,9 @@ pub fn derive_meta_tuple(tokens: TokenStream) -> TokenStream {
 ///     string: &'t String,
 /// }
 /// ```
-/// 
+///
 /// # Semantics
-/// 
+///
 /// Requires a generic lifetime, all generic types will be added `+ 'static` bound.
 #[proc_macro_derive(MetaQuery)]
 pub fn derive_meta_query(tokens: TokenStream) -> TokenStream {
@@ -155,7 +155,7 @@ pub fn derive_meta_query(tokens: TokenStream) -> TokenStream {
     let mut g2 = input.generics.clone();
     match g2.params.first_mut() {
         Some(GenericParam::Lifetime(lt)) => lt.lifetime = Lifetime::new("'__t", Span::call_site()),
-        _ => return quote! {compile_error!("Expected at least one lifetime parameters.")}.into()
+        _ => return quote! {compile_error!("Expected at least one lifetime parameters.")}.into(),
     }
     let gat_param = g2.split_for_impl().1;
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
@@ -186,11 +186,11 @@ pub fn derive_meta_query(tokens: TokenStream) -> TokenStream {
     let mut type_comparisons = Vec::new();
 
     for x in 0..types.len() {
-        for y in x+1..types.len() {
+        for y in x + 1..types.len() {
             let a = &types[x];
             let b = &types[y];
             type_comparisons.push(quote! {
-                <#a as ::meta_tuple::MetaQuerySingle>::compatible::<#b>() 
+                <#a as ::meta_tuple::MetaQuerySingle>::compatible::<#b>()
             });
         }
     }

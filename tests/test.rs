@@ -1,6 +1,8 @@
 use core::fmt::Display;
 
-use meta_tuple::{meta_tuple, meta_tuple_type, IntoMetaTuple, MetaAny, MetaItem, MetaQuery, MetaTuple};
+use meta_tuple::{
+    IntoMetaTuple, MetaAny, MetaItem, MetaQuery, MetaTuple, meta_tuple, meta_tuple_type,
+};
 
 #[derive(Debug, PartialEq, Eq, MetaItem)]
 struct MyType;
@@ -100,7 +102,6 @@ pub struct MyGenericQuery<'t, A, B> {
     pub b: &'t B,
 }
 
-
 #[test]
 pub fn test_query() {
     let tuple = MyTuple {
@@ -120,6 +121,15 @@ pub fn test_query() {
     let tuple2 = MyTuple2("1", vec![1, 2, 3], 4);
     assert_eq!(tuple2.query_ref::<IntQuery>(), Some(IntQuery { a: &4 }));
     assert_eq!(tuple2.query_ref::<IntQuery2>(), Some(IntQuery2(&4)));
-    assert_eq!(tuple2.query_ref::<MyQuery>(), Some(MyQuery { a: &4, b: &"1" }));
-    assert_eq!(tuple2.query_ref::<MyGenericQuery<&str, Vec<u8>>>(), Some(MyGenericQuery { a: &"1", b: &vec![1, 2, 3] }));
+    assert_eq!(
+        tuple2.query_ref::<MyQuery>(),
+        Some(MyQuery { a: &4, b: &"1" })
+    );
+    assert_eq!(
+        tuple2.query_ref::<MyGenericQuery<&str, Vec<u8>>>(),
+        Some(MyGenericQuery {
+            a: &"1",
+            b: &vec![1, 2, 3]
+        })
+    );
 }

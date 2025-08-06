@@ -3,7 +3,7 @@ members = ["derive"]
 
 [package]
 name = "meta_tuple"
-version = "0.4.0"
+version = "0.4.1"
 edition = "2024"
 
 authors = ["Mincong Lu <mintlux667@gmail.com>"]
@@ -25,4 +25,5 @@ derive = ["meta_tuple_derive"]
 
 [dependencies]
 meta_tuple_derive = { version = "0.2", path = "./derive", optional = true }
+polonius-the-crab = "0.4.2"
 

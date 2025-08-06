@@ -109,10 +109,10 @@ macro_rules! meta_tuple_type {
 /// # use meta_tuple::*;
 /// trait Metadata: MetaAny + 'static {}
 ///
-/// impl_meta_box!(Metadata);
+/// impl_meta_any!(Metadata);
 /// ```
 #[macro_export]
-macro_rules! impl_meta_box {
+macro_rules! impl_meta_any {
     ($trait: ident) => {
         const _: () = {
             use $crate::MetaAny;
@@ -158,26 +158,29 @@ macro_rules! impl_meta_box {
                         $crate::ErasedInnerMut::None => None,
                         $crate::ErasedInnerMut::Any(any) => any.downcast_mut(),
                         $crate::ErasedInnerMut::Joined(a, b) => a.get_mut().or_else(|| b.get_mut()),
-                        $crate::ErasedInnerMut::Struct(s) => {
+                        $crate::ErasedInnerMut::Struct(mut s) => {
                             let mut idx = 0;
-                            loop {
-                                // To get around a borrow checker issue with returned type.
-                                //
-                                // # Safety
-                                //
-                                // Safe since we can only return one field.
-                                let s =
-                                    unsafe { (s as *mut dyn $crate::MetaBundle).as_mut() }.unwrap();
-                                let field = s.get_field_mut(idx)?;
+                            $crate::polonius_loop! { |s| -> Option<&'polonius mut T> {
+                                let Some(field) = s.get_field_mut(idx) else {
+                                    $crate::polonius_return!(None);
+                                };
                                 if let Some(result) = field.downcast_mut() {
-                                    return Some(result);
+                                    $crate::polonius_return!(Some(result));
                                 }
                                 idx += 1;
-                            }
+                            }}
                         }
                     }
                 }
             }
         };
     };
+}
+
+#[deprecated = "use impl_meta_any"]
+#[macro_export]
+macro_rules! impl_meta_box {
+    ($($tt: tt)*) => {
+        $crate::impl_meta_any!($($tt)*)
+    }
 }

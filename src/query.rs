@@ -1,5 +1,5 @@
 use crate::{MetaAny, MetaTuple};
-use core::any::{type_name, TypeId};
+use core::any::{TypeId, type_name};
 
 pub trait MetaQuerySingle: MetaQuery {
     fn unique_type_id() -> TypeId;
@@ -10,11 +10,11 @@ pub trait MetaQuerySingle: MetaQuery {
 }
 
 /// Query into a [`MetaTuple`].
-/// 
+///
 /// By default implemented on tuples like `(&i32, &String)`.
-/// 
+///
 /// # Safety
-/// 
+///
 /// `validate` must ensure no duplicate fields are queried.
 pub unsafe trait MetaQuery {
     type Output<'t>: Sized;
@@ -41,7 +41,7 @@ pub unsafe trait MetaQuery {
     fn query_mut_ptr<'t, T: MetaTuple + ?Sized + 't>(input: &'t T) -> Option<Self::OutputPtr<'t>>;
     fn query_dyn_mut_ptr<'t>(input: &'t dyn MetaAny) -> Option<Self::OutputPtr<'t>>;
     /// # Safety
-    /// 
+    ///
     /// Input must point to valid data.
     unsafe fn from_ptr<'t>(ptr: Self::OutputPtr<'t>) -> Self::Output<'t>;
 
