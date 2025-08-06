@@ -1,4 +1,6 @@
-use meta_tuple::{MetaItem, MetaTuple, meta_tuple, meta_tuple_type};
+use std::any::Any;
+
+use meta_tuple::{impl_meta_any, meta_tuple, meta_tuple_type, MetaAny, MetaItem, MetaTuple};
 
 pub struct Attack;
 pub struct Attacker;
@@ -61,4 +63,16 @@ impl<A: CardComponent2, B: CardComponent2> CardComponent2 for Join<A, B> {
         let out_2 = self.1.play(&input.join_tuple(&out));
         meta_tuple!(#out, #out_2)
     }
+}
+
+pub trait Metadata: MetaAny + Any {}
+
+impl<T> Metadata for T where T: MetaAny + Any {}
+
+impl_meta_any!(Metadata);
+
+#[test]
+fn metadata() {
+    let boxed: Box<dyn Metadata> = Box::new(());
+    assert_eq!(boxed.get::<f32>(), None)
 }

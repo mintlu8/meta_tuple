@@ -16,8 +16,8 @@ pub use query::MetaQuerySingle;
 
 #[cfg(feature = "derive")]
 pub use meta_tuple_derive::{MetaItem, MetaQuery, MetaTuple};
-
-pub(crate) use polonius_the_crab::{polonius_loop, polonius_return};
+#[doc(hidden)]
+pub use polonius_the_crab::{polonius_loop, polonius_return};
 
 /// A statically typed opaque tuple that can contain any type.
 ///
