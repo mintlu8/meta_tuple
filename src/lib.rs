@@ -116,6 +116,23 @@ pub unsafe trait MetaTuple: MetaAny {
         Join(self, other)
     }
 
+    /// Join with a &dyn MetaAny.
+    fn join_dyn_ref(self, other: &dyn MetaAny) -> Join<Self, &DynMetaTuple>
+    where
+        Self: Sized,
+    {
+        Join(self, DynMetaTuple::from_ref(other))
+    }
+
+    /// Join with a `&mut dyn MetaAny`.
+    fn join_dyn_mut(self, other: &mut dyn MetaAny) -> Join<Self, &mut DynMetaTuple>
+    where
+        Self: Sized,
+    {
+        Join(self, DynMetaTuple::from_mut(other))
+    }
+
+
     /// Try obtain multiple values from the [`MetaTuple`].
     fn query_ref<T: MetaQuery>(&self) -> Option<T::Output<'_>> {
         T::query_ref(self)
@@ -127,7 +144,7 @@ pub unsafe trait MetaTuple: MetaAny {
     }
 }
 
-unsafe impl<T: MetaTuple> MetaTuple for &T {
+unsafe impl<T: MetaTuple + ?Sized> MetaTuple for &T {
     fn get<U: 'static>(&self) -> Option<&U> {
         MetaTuple::get(*self)
     }
@@ -141,7 +158,7 @@ unsafe impl<T: MetaTuple> MetaTuple for &T {
     }
 }
 
-unsafe impl<T: MetaTuple> MetaTuple for &mut T {
+unsafe impl<T: MetaTuple + ?Sized> MetaTuple for &mut T {
     fn get<U: 'static>(&self) -> Option<&U> {
         MetaTuple::get(*self)
     }

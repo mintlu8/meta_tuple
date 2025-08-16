@@ -1,5 +1,5 @@
 use crate::{Join, MetaItem, MetaTuple};
-use core::{any::Any, ptr::NonNull};
+use core::{any::Any, mem, ptr::NonNull};
 
 /// Utility trait for erasing structs.
 pub trait MetaBundle {
@@ -96,7 +96,7 @@ unsafe impl MetaAny for () {
     }
 }
 
-unsafe impl<T: MetaAny> MetaAny for &T {
+unsafe impl<T: MetaAny + ?Sized> MetaAny for &T {
     fn as_erased<'t>(&self) -> ErasedInner<'_> {
         MetaAny::as_erased(*self)
     }
@@ -110,7 +110,7 @@ unsafe impl<T: MetaAny> MetaAny for &T {
     }
 }
 
-unsafe impl<T: MetaAny> MetaAny for &mut T {
+unsafe impl<T: MetaAny + ?Sized> MetaAny for &mut T {
     fn as_erased<'t>(&self) -> ErasedInner<'_> {
         MetaAny::as_erased(*self)
     }
@@ -172,5 +172,53 @@ unsafe impl<A: MetaTuple, B: MetaTuple> MetaAny for Join<A, B> {
 
     fn as_erased_ptr(&self) -> ErasedInnerPtr<'_> {
         ErasedInnerPtr::Joined(&self.0, &self.1)
+    }
+}
+
+/// [`MetaTuple`] implementation for [`dyn MetaAny`](crate::MetaAny).
+#[repr(transparent)]
+pub struct DynMetaTuple(pub dyn MetaAny);
+
+impl DynMetaTuple {
+    pub fn from_ref(r: &dyn MetaAny) -> &Self {
+        // # Safety
+        //
+        // Safe since `#[repr(transparent)]`, same implementation as `ref_cast`.
+        unsafe { mem::transmute(r) }
+    }
+
+    pub fn from_mut(r: &mut dyn MetaAny) -> &mut Self {
+        // # Safety
+        //
+        // Safe since `#[repr(transparent)]`, same implementation as `ref_cast`.
+        unsafe { mem::transmute(r) }
+    }
+}
+
+unsafe impl MetaAny for DynMetaTuple {
+    fn as_erased(&self) -> ErasedInner<'_> {
+        self.0.as_erased()
+    }
+
+    fn as_erased_mut(&mut self) -> ErasedInnerMut<'_> {
+        self.0.as_erased_mut()
+    }
+
+    fn as_erased_ptr(&self) -> ErasedInnerPtr<'_> {
+        self.0.as_erased_ptr()
+    }
+}
+
+unsafe impl MetaTuple for DynMetaTuple {
+    fn get<T: 'static>(&self) -> Option<&T> {
+        self.0.get()
+    }
+
+    fn get_mut<T: 'static>(&mut self) -> Option<&mut T> {
+        self.0.get_mut()
+    }
+
+    fn get_mut_ptr<T: 'static>(&self) -> Option<*mut T> {
+        self.0.get_ptr()
     }
 }

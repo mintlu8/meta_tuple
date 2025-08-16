@@ -1,6 +1,6 @@
 use std::any::Any;
 
-use meta_tuple::{impl_meta_any, meta_tuple, meta_tuple_type, MetaAny, MetaItem, MetaTuple};
+use meta_tuple::{MetaAny, MetaItem, MetaTuple, impl_meta_any, meta_tuple, meta_tuple_type};
 
 pub struct Attack;
 pub struct Attacker;

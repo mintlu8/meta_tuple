@@ -69,6 +69,19 @@ pub fn test() {
     assert_eq!(f.get::<i32>(), Some(&1));
     assert_eq!(f.get::<f32>(), Some(&4.5));
     assert_eq!(f.get::<&str>(), Some(&"hi"));
+
+
+    let tuple3 = meta_tuple!(1, '2', "3");
+
+    let tuple4: &dyn MetaAny = &meta_tuple!(5u32, 6u64, 7.0);
+
+    let joined = tuple3.join_dyn_ref(tuple4);
+    assert_eq!(joined.get::<i32>(), Some(&1));
+    assert_eq!(joined.get::<char>(), Some(&'2'));
+    assert_eq!(joined.get::<&str>(), Some(&"3"));
+    assert_eq!(joined.get::<u32>(), Some(&5u32));
+    assert_eq!(joined.get::<u64>(), Some(&6u64));
+    assert_eq!(joined.get::<f64>(), Some(&7.0));
 }
 
 #[derive(Debug, MetaTuple)]
